@@ -42,13 +42,28 @@ import heapq
 def dijkstra(graph: dict[str, list[tuple[str, int]]], start: str, end: str) -> int:
     """Return the cost of the shortest path between vertices start and end.
 
+    Dijkstra's algorithm is correct only for non-negative edge weights. A
+    negative edge used to be accepted and the function returned a distance
+    that was not the shortest path. For example, A→B (5), A→C (1), B→C (-10)
+    returned 1 instead of -5. Those graphs are rejected.
+
     >>> dijkstra(G, "E", "C")
     6
     >>> dijkstra(G2, "E", "F")
     3
     >>> dijkstra(G3, "E", "F")
     3
+    >>> dijkstra({"A": [("B", 5), ("C", 1)], "B": [("C", -10)], "C": []}, "A", "C")
+    Traceback (most recent call last):
+        ...
+    ValueError: Dijkstra's algorithm requires non-negative edge weights
     """
+    for neighbors in graph.values():
+        for _vertex, weight in neighbors:
+            if weight < 0:
+                msg = "Dijkstra's algorithm requires non-negative edge weights"
+                raise ValueError(msg)
+
     heap: list[tuple[int, str]] = [(0, start)]  # (cost, node)
     visited: set[str] = set()
     costs: dict[str, int] = {start: 0}  # Store minimum costs to reach each node
@@ -115,16 +130,10 @@ G3 = {
     "G": [("F", 1)],
 }
 
-short_distance = dijkstra(G, "E", "C")
-print(short_distance)  # E -- 3 --> F -- 3 --> C == 6
-
-short_distance = dijkstra(G2, "E", "F")
-print(short_distance)  # E -- 3 --> F == 3
-
-short_distance = dijkstra(G3, "E", "F")
-print(short_distance)  # E -- 2 --> G -- 1 --> F == 3
-
 if __name__ == "__main__":
     import doctest
 
+    print(dijkstra(G, "E", "C"))  # E -- 3 --> F -- 3 --> C == 6
+    print(dijkstra(G2, "E", "F"))  # E -- 3 --> F == 3
+    print(dijkstra(G3, "E", "F"))  # E -- 2 --> G -- 1 --> F == 3
     doctest.testmod()

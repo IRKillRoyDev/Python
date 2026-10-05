@@ -16,7 +16,15 @@ def is_luhn(string: str) -> bool:
     ...     79927398719)
     >>> [is_luhn(str(test_case)) for test_case in test_cases]
     [False, False, False, True, False, False, False, False, False, False]
+    >>> is_luhn("")
+    False
+    >>> is_luhn("12ab")
+    False
     """
+    # An empty string has no last digit. Indexing it raised IndexError.
+    if not string.isdigit():
+        return False
+
     check_digit: int
     _vector: list[str] = list(string)
     __vector, check_digit = _vector[:-1], int(_vector[-1])

@@ -20,7 +20,15 @@ def knuth_morris_pratt(text: str, pattern: str) -> int:
     ...    for s in ("kn", "h_m", "rr", "tt", "not there")
     ... )
     True
+    >>> knuth_morris_pratt("abc", "")
+    0
+    >>> knuth_morris_pratt("", "")
+    0
     """
+    # An empty pattern occurs at the start of every string, matching str.find.
+    # Indexing pattern[0] used to raise IndexError, and "" against "" returned -1.
+    if pattern == "":
+        return 0
 
     # 1) Construct the failure array
     failure = get_failure_array(pattern)
@@ -71,8 +79,10 @@ if __name__ == "__main__":
     pattern = "abc1abc12"
     text1 = "alskfjaldsabc1abc1abc12k23adsfabcabc"
     text2 = "alskfjaldsk23adsfabcabc"
-    assert knuth_morris_pratt(text1, pattern)
-    assert knuth_morris_pratt(text2, pattern)
+    assert knuth_morris_pratt(text1, pattern) == text1.find(pattern)
+    # text2 does not contain the pattern. -1 is truthy, so `assert result`
+    # used to pass even though the pattern was absent.
+    assert knuth_morris_pratt(text2, pattern) == -1
 
     # Test 2)
     pattern = "ABABX"

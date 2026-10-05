@@ -1,7 +1,23 @@
+import ast
+import operator
 from collections.abc import Callable
 
 import numpy as np
-from sympy import lambdify, symbols, sympify
+
+# ``sympy.sympify`` evaluates arbitrary Python (including ``__import__``).
+# Only these arithmetic operations on the variable ``x`` are accepted.
+_BIN_OPS: dict[type[ast.operator], Callable[[object, object], object]] = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Pow: operator.pow,
+}
+_UNARY_OPS: dict[type[ast.unaryop], Callable[[object], object]] = {
+    ast.UAdd: operator.pos,
+    ast.USub: operator.neg,
+}
+_UNSUPPORTED = "only arithmetic expressions in the variable x are allowed"
 
 
 def get_inputs() -> tuple[str, float, float]:
@@ -25,15 +41,57 @@ def get_inputs() -> tuple[str, float, float]:
     return func, lower_limit, upper_limit
 
 
+def _validate_arithmetic(node: ast.AST) -> None:
+    """Reject every AST node that is not arithmetic in the variable ``x``."""
+    if isinstance(node, ast.Expression):
+        _validate_arithmetic(node.body)
+        return
+    if (
+        isinstance(node, ast.Constant)
+        and isinstance(node.value, (int, float))
+        and not isinstance(node.value, bool)
+    ):
+        return
+    if isinstance(node, ast.Name) and node.id == "x":
+        return
+    if isinstance(node, ast.BinOp) and type(node.op) in _BIN_OPS:
+        _validate_arithmetic(node.left)
+        _validate_arithmetic(node.right)
+        return
+    if isinstance(node, ast.UnaryOp) and type(node.op) in _UNARY_OPS:
+        _validate_arithmetic(node.operand)
+        return
+    raise ValueError(_UNSUPPORTED)
+
+
+def _eval_arithmetic(node: ast.AST, x: object) -> object:
+    """Evaluate a previously validated arithmetic AST at ``x``."""
+    if isinstance(node, ast.Expression):
+        return _eval_arithmetic(node.body, x)
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.Name):
+        return x
+    if isinstance(node, ast.BinOp):
+        return _BIN_OPS[type(node.op)](
+            _eval_arithmetic(node.left, x), _eval_arithmetic(node.right, x)
+        )
+    return _UNARY_OPS[type(node.op)](_eval_arithmetic(node.operand, x))
+
+
 def safe_function_eval(func_str: str) -> Callable:
     """
-    Safely evaluates the function by substituting x value using sympy.
+    Build a numeric function of ``x`` from an arithmetic expression.
+
+    Names, calls, and attribute access are rejected. This used to call
+    ``sympy.sympify``, which evaluates arbitrary Python such as
+    ``__import__('os').getcwd()``.
 
     Args:
         func_str (str): Function expression as a string.
 
     Returns:
-        Callable: A callable lambda function for numerical evaluation.
+        Callable: A callable function for numerical evaluation.
 
     Examples:
         >>> f = safe_function_eval('x**2')
@@ -42,11 +100,21 @@ def safe_function_eval(func_str: str) -> Callable:
         >>> f = safe_function_eval('x + x**2')
         >>> f(2)
         6
+        >>> safe_function_eval("__import__('os').getcwd()")
+        Traceback (most recent call last):
+            ...
+        ValueError: only arithmetic expressions in the variable x are allowed
     """
-    x = symbols("x")
-    func_expr = sympify(func_str)
-    lambda_func = lambdify(x, func_expr, modules=["numpy"])
-    return lambda_func
+    try:
+        tree = ast.parse(func_str, mode="eval")
+    except SyntaxError as exc:
+        raise ValueError(_UNSUPPORTED) from exc
+    _validate_arithmetic(tree)
+
+    def _func(value: object) -> object:
+        return _eval_arithmetic(tree, value)
+
+    return _func
 
 
 def compute_table(

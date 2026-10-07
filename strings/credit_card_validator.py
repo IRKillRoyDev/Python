@@ -27,7 +27,17 @@ def luhn_validation(credit_card_number: str) -> bool:
     True
     >>> luhn_validation('41111111111111')
     False
+    >>> luhn_validation('')
+    False
+    >>> luhn_validation('hello')
+    False
     """
+    # "" .isdigit() is False. Without this guard the empty sum is 0 and
+    # 0 % 10 == 0, so an empty string was reported as a valid Luhn number.
+    # Non-digits also used to raise ValueError from int().
+    if not credit_card_number.isdigit():
+        return False
+
     cc_number = credit_card_number
     total = 0
     half_len = len(cc_number) - 2

@@ -33,6 +33,8 @@ def equated_monthly_installments(
     Traceback (most recent call last):
         ...
     Exception: Years to repay must be an integer > 0
+    >>> equated_monthly_installments(12000, 0, 1)
+    1000.0
     """
     if principal <= 0:
         raise Exception("Principal borrowed must be > 0")
@@ -46,6 +48,11 @@ def equated_monthly_installments(
 
     # Years to repay is multiplied by 12 to get number of payments as payment is monthly
     number_of_payments = years_to_repay * 12
+
+    # The closed form divides by ((1 + r) ** n - 1), which is 0 when r is 0.
+    # A zero interest loan is just the principal spread across the payments.
+    if rate_per_month == 0:
+        return principal / number_of_payments
 
     return (
         principal

@@ -27,6 +27,20 @@ def mf_knapsack(i, wt, val, j):
 
 
 def knapsack(w, wt, val, n):
+    """
+    Solve the 0-1 knapsack problem for capacity ``w``.
+
+    The value used to be read from the loop variable ``w_``. When ``w`` is 0
+    or ``n`` is 0 that loop never runs, so the function raised
+    ``UnboundLocalError`` instead of returning 0.
+
+    >>> knapsack(0, [1], [10], 1)[0]
+    0
+    >>> knapsack(5, [], [], 0)[0]
+    0
+    >>> knapsack(10, [1, 3, 5, 2], [10, 20, 100, 22], 4)[0]
+    142
+    """
     dp = [[0] * (w + 1) for _ in range(n + 1)]
 
     for i in range(1, n + 1):
@@ -36,7 +50,7 @@ def knapsack(w, wt, val, n):
             else:
                 dp[i][w_] = dp[i - 1][w_]
 
-    return dp[n][w_], dp
+    return dp[n][w], dp
 
 
 def knapsack_with_example_solution(w: int, wt: list, val: list):
@@ -67,6 +81,8 @@ def knapsack_with_example_solution(w: int, wt: list, val: list):
     (142, {2, 3, 4})
     >>> knapsack_with_example_solution(6, [4, 3, 2, 3], [3, 2, 4, 4])
     (8, {3, 4})
+    >>> knapsack_with_example_solution(0, [1, 2], [10, 20])
+    (0, set())
     >>> knapsack_with_example_solution(6, [4, 3, 2, 3], [3, 2, 4])
     Traceback (most recent call last):
         ...

@@ -54,6 +54,7 @@ euler-validate = [
 [tool.ruff]
 target-version = "py315"
 output-format = "full"
+extend-exclude = ["scripts/text_category_counter.py"]
 lint.select = [
   # https://docs.astral.sh/ruff/rules
   "A",     # flake8-builtins
@@ -333,6 +334,7 @@ ini_options.addopts = [
   "--durations=10",
   "--doctest-modules",
   "--showlocals",
+  "--ignore=scripts/text_category_counter.py",
 ]
 ini_options.markers = [
   "mat_ops: mark a test as utilizing matrix operations.",
